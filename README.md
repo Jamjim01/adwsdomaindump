@@ -1,3 +1,6 @@
+## JH Fork: Added functionality so you can use this against another domain in the forest where you have transitive trust:
+- Example: DOMAINA\USER -> DOMAINB Domain controller. See --base-dn option for more information.
+
 # ADWSDomainDump
 Active Directory information dumper via ADWS (Active Directory Web Services).</br>
 <img width="350" height="350" alt="image" src="https://github.com/user-attachments/assets/6d624141-005c-49a1-88ee-e6c431ff0b57" />
