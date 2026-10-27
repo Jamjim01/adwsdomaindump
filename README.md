@@ -6,7 +6,7 @@ Active Directory information dumper via ADWS (Active Directory Web Services).</b
 Recommended install:
 
 ```sh
-pipx install git+https://github.com/mverschu/adwsdomaindump
+pipx install git+https://github.com/Jamjim01/adwsdomaindump
 # or
 pipx install .
 ```
