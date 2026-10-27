@@ -1562,6 +1562,10 @@ def main():
                                 "(no admin required). Not included in BloodHound export.")
     miscgroup.add_argument("-n", "--dns-server", help="Use custom DNS resolver instead of system DNS (try a domain controller IP)")
     miscgroup.add_argument("-m", "--minimal", action='store_true', default=False, help="Only query minimal set of attributes to limit memmory usage")
+    miscgroup.add_argument("--base-dn", type=str, metavar='BASE_DN',
+                           help="Override the search base DN (e.g. DC=target,DC=domain,DC=com). "
+                                "Use when querying a trusted domain's DC with cross-domain credentials "
+                                "to avoid LDAP referral errors (error 8235/0000202B).")
     miscgroup.add_argument("--force", action='store_true', help="Skip ADWS port connectivity check")
 
     args = parser.parse_args()
@@ -1650,12 +1654,25 @@ def main():
         else:
             log_warn('Cannot determine domain. Please specify username with domain (DOMAIN\\username or user@domain.com)')
             sys.exit(1)
+
+    # Derive target domain from hostname for the server object.
+    # In cross-domain scenarios, the auth domain (from username) differs
+    # from the target domain (from hostname). The server object should
+    # reflect the target so that defaultNamingContext and search base
+    # point to the right partition.
+    if '.' in host:
+        target_domain = '.'.join(host.split('.')[1:])
+    else:
+        target_domain = domain
     
     if args.password is None and args.user is not None:
         args.password = getpass.getpass()
     
     # define the server and the connection using ADWS
-    s = ADWSServer(host, domain)
+    # Use target_domain (from hostname) for the server, not the auth domain
+    # (from username). This ensures defaultNamingContext and search base
+    # reflect the target DC's domain in cross-domain scenarios.
+    s = ADWSServer(host, target_domain)
     log_info('Connecting to ADWS host...')
     
     # Test ADWS port connectivity (unless --force is used)
@@ -1678,7 +1695,12 @@ def main():
     log_success('Bind OK')
     log_info('Starting domain dump')
     #Create domaindumper object
-    dd = domainDumper(s, c, cnf)
+    # If --base-dn is specified, use it as the root search base to avoid referral errors
+    # in cross-domain/cross-forest scenarios
+    override_root = getattr(args, 'base_dn', None)
+    if override_root:
+        log_info(f'Using custom search base: {override_root}')
+    dd = domainDumper(s, c, cnf, root=override_root)
 
     #Do the actual dumping
     dd.domainDump()

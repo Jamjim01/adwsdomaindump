@@ -327,7 +327,11 @@ class BloodHoundExporter:
 
     def export(self, dd):
         self._written_files = []
-        self.domain = dd.server.domain.upper()
+        # Derive domain from the search base DN (dd.root) rather than the
+        # authentication domain (dd.server.domain).  When --base-dn is used
+        # for cross-domain collection, dd.root reflects the target domain
+        # while dd.server.domain still holds the auth domain.
+        self.domain = ldap_to_domain(dd.root).upper() if dd.root else dd.server.domain.upper()
         self.domain_sid = dd.getRootSid()
         if not self.domain_sid:
             logger.error("Could not determine domain SID, skipping BloodHound export")
